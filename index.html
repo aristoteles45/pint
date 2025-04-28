@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Paint com Borracha Redonda Visível</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      height: 100vh;
+      background: #f0f0f0;
+    }
+    #toolbar {
+      margin: 20px;
+    }
+    #container {
+      position: relative;
+    }
+    canvas {
+      border: 2px solid #333;
+      background: #fff;
+      cursor: none; /* escondemos o cursor quando desenhando a borracha */
+    }
+    #cursor {
+      position: absolute;
+      pointer-events: none; /* deixa o cursor fantasma ignorar cliques */
+      border: 2px dashed red;
+      border-radius: 50%;
+      width: 40px; /* tamanho inicial */
+      height: 40px;
+      transform: translate(-50%, -50%);
+      display: none; /* esconde por padrão */
+    }
+    button {
+      margin-right: 10px;
+      padding: 8px 16px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button id="pencil">Lápis</button>
+  <button id="eraser">Borracha</button>
+</div>
+
+<div id="container">
+  <canvas id="paint" width="800" height="600"></canvas>
+  <div id="cursor"></div> <!-- Círculo da borracha -->
+</div>
+
+<script>
+  const canvas = document.getElementById('paint');
+  const ctx = canvas.getContext('2d');
+  const cursor = document.getElementById('cursor');
+
+  let drawing = false;
+  let erasing = false;
+
+  const pencilBtn = document.getElementById('pencil');
+  const eraserBtn = document.getElementById('eraser');
+
+  // Configurações iniciais
+  ctx.strokeStyle = '#000'; // cor do lápis
+  ctx.lineWidth = 2;        // largura inicial
+  ctx.lineCap = 'round';    // ponta arredondada
+
+  let eraserSize = 40; // tamanho do "círculo" da borracha
+
+  canvas.addEventListener('mousedown', (e) => {
+    drawing = true;
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    // Atualiza posição do cursor visual
+    if (erasing) {
+      cursor.style.left = `${e.offsetX}px`;
+      cursor.style.top = `${e.offsetY}px`;
+    }
+
+    if (drawing) {
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    drawing = false;
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    drawing = false;
+    cursor.style.display = 'none'; // esconde o círculo quando sair do canvas
+  });
+
+  canvas.addEventListener('mouseenter', (e) => {
+    if (erasing) {
+      cursor.style.display = 'block'; // mostra o círculo ao entrar
+    }
+  });
+
+  // Botão Lápis
+  pencilBtn.addEventListener('click', () => {
+    erasing = false;
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    cursor.style.display = 'none'; // esconde o cursor fantasma
+    canvas.style.cursor = 'crosshair'; // volta o cursor normal
+  });
+
+  // Botão Borracha
+  eraserBtn.addEventListener('click', () => {
+    erasing = true;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = eraserSize;
+    ctx.lineCap = 'round';
+    cursor.style.width = `${eraserSize}px`;
+    cursor.style.height = `${eraserSize}px`;
+    cursor.style.display = 'block';
+    canvas.style.cursor = 'none'; // esconde o cursor normal
+  });
+</script>
+
+</body>
+</html>
