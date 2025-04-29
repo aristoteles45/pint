@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Paint com Borracha Redonda Visível</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paint Mobile com Cores Secundárias</title>
   <style>
     body {
       display: flex;
@@ -13,30 +14,44 @@
       background: #f0f0f0;
     }
     #toolbar {
-      margin: 20px;
+      margin: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     #container {
       position: relative;
+      touch-action: none;
     }
     canvas {
       border: 2px solid #333;
       background: #fff;
-      cursor: none; /* escondemos o cursor quando desenhando a borracha */
+      cursor: none;
+      touch-action: none;
+      max-width: 100%;
+      max-height: 80vh;
     }
     #cursor {
       position: absolute;
-      pointer-events: none; /* deixa o cursor fantasma ignorar cliques */
+      pointer-events: none;
       border: 2px dashed red;
       border-radius: 50%;
-      width: 40px; /* tamanho inicial */
+      width: 40px;
       height: 40px;
       transform: translate(-50%, -50%);
-      display: none; /* esconde por padrão */
+      display: none;
     }
-    button {
-      margin-right: 10px;
+    button, .color-button {
+      margin: 5px;
       padding: 8px 16px;
       font-size: 16px;
+      cursor: pointer;
+    }
+    .color-button {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
     }
   </style>
 </head>
@@ -45,76 +60,105 @@
 <div id="toolbar">
   <button id="pencil">Lápis</button>
   <button id="eraser">Borracha</button>
+
+  <!-- Cores Primárias -->
+  <button class="color-button" style="background: black;" data-color="#000000"></button>
+  <button class="color-button" style="background: red;" data-color="#FF0000"></button>
+  <button class="color-button" style="background: blue;" data-color="#0000FF"></button>
+  <button class="color-button" style="background: yellow;" data-color="#FFFF00"></button>
+
+  <!-- Cores Secundárias -->
+  <button class="color-button" style="background: green;" data-color="#00FF00"></button>
+  <button class="color-button" style="background: orange;" data-color="#FFA500"></button>
+  <button class="color-button" style="background: purple;" data-color="#800080"></button>
 </div>
 
 <div id="container">
-  <canvas id="paint" width="800" height="600"></canvas>
-  <div id="cursor"></div> <!-- Círculo da borracha -->
+  <canvas id="paint"></canvas>
+  <div id="cursor"></div>
 </div>
 
 <script>
   const canvas = document.getElementById('paint');
   const ctx = canvas.getContext('2d');
   const cursor = document.getElementById('cursor');
+  const pencilBtn = document.getElementById('pencil');
+  const eraserBtn = document.getElementById('eraser');
+  const colorButtons = document.querySelectorAll('.color-button');
 
   let drawing = false;
   let erasing = false;
+  let eraserSize = 40;
 
-  const pencilBtn = document.getElementById('pencil');
-  const eraserBtn = document.getElementById('eraser');
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
 
-  // Configurações iniciais
-  ctx.strokeStyle = '#000'; // cor do lápis
-  ctx.lineWidth = 2;        // largura inicial
-  ctx.lineCap = 'round';    // ponta arredondada
+  function getXY(event) {
+    if (event.touches && event.touches.length > 0) {
+      return {
+        x: event.touches[0].clientX - canvas.getBoundingClientRect().left,
+        y: event.touches[0].clientY - canvas.getBoundingClientRect().top
+      };
+    } else {
+      return {
+        x: event.offsetX,
+        y: event.offsetY
+      };
+    }
+  }
 
-  let eraserSize = 40; // tamanho do "círculo" da borracha
-
-  canvas.addEventListener('mousedown', (e) => {
+  function startDraw(e) {
+    e.preventDefault();
     drawing = true;
+    const { x, y } = getXY(e);
     ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
-  });
+    ctx.moveTo(x, y);
+  }
 
-  canvas.addEventListener('mousemove', (e) => {
-    // Atualiza posição do cursor visual
+  function moveDraw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const { x, y } = getXY(e);
+
     if (erasing) {
-      cursor.style.left = `${e.offsetX}px`;
-      cursor.style.top = `${e.offsetY}px`;
+      cursor.style.left = `${x}px`;
+      cursor.style.top = `${y}px`;
     }
 
-    if (drawing) {
-      ctx.lineTo(e.offsetX, e.offsetY);
-      ctx.stroke();
-    }
-  });
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
 
-  canvas.addEventListener('mouseup', () => {
+  function endDraw(e) {
+    e.preventDefault();
     drawing = false;
-  });
+  }
 
+  // Eventos mouse
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', moveDraw);
+  canvas.addEventListener('mouseup', endDraw);
   canvas.addEventListener('mouseleave', () => {
     drawing = false;
-    cursor.style.display = 'none'; // esconde o círculo quando sair do canvas
+    cursor.style.display = 'none';
   });
 
-  canvas.addEventListener('mouseenter', (e) => {
-    if (erasing) {
-      cursor.style.display = 'block'; // mostra o círculo ao entrar
-    }
+  canvas.addEventListener('mouseenter', () => {
+    if (erasing) cursor.style.display = 'block';
   });
 
-  // Botão Lápis
+  // Eventos touch (mobile)
+  canvas.addEventListener('touchstart', startDraw);
+  canvas.addEventListener('touchmove', moveDraw);
+  canvas.addEventListener('touchend', endDraw);
+
   pencilBtn.addEventListener('click', () => {
     erasing = false;
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    cursor.style.display = 'none'; // esconde o cursor fantasma
-    canvas.style.cursor = 'crosshair'; // volta o cursor normal
+    canvas.style.cursor = 'crosshair';
+    cursor.style.display = 'none';
   });
 
-  // Botão Borracha
   eraserBtn.addEventListener('click', () => {
     erasing = true;
     ctx.strokeStyle = '#fff';
@@ -123,8 +167,29 @@
     cursor.style.width = `${eraserSize}px`;
     cursor.style.height = `${eraserSize}px`;
     cursor.style.display = 'block';
-    canvas.style.cursor = 'none'; // esconde o cursor normal
+    canvas.style.cursor = 'none';
   });
+
+  colorButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      erasing = false;
+      ctx.strokeStyle = button.getAttribute('data-color');
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      cursor.style.display = 'none';
+      canvas.style.cursor = 'crosshair';
+    });
+  });
+
+  // Ajustar tamanho do canvas
+  function resizeCanvas() {
+    const containerWidth = document.getElementById('container').clientWidth;
+    canvas.width = containerWidth - 20;
+    canvas.height = window.innerHeight * 0.7;
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
 </script>
 
 </body>
